@@ -49,11 +49,11 @@ IRC_CHRS = CharacterTable(
     bg_default=NSC("\x03,"),
     fx_reset=NSC("\x03"),
     fx_bold=NSC("\x02"),
-    fx_italic=NSC("\x1D"),
-    fx_underline=NSC("\x1F"),
-    fx_not_italic=NSC("\x0F"),
-    fx_not_underline=NSC("\x0F"),
-    fx_normal=NSC("\x0F"),
+    fx_italic=NSC("\x1d"),
+    fx_underline=NSC("\x1f"),
+    fx_not_italic=NSC("\x0f"),
+    fx_not_underline=NSC("\x0f"),
+    fx_normal=NSC("\x0f"),
     fixed_width="",
     end_fixed_width="",
     inline_code="",
@@ -315,7 +315,7 @@ class IRCRoom(Room):
         """
         Invite one or more people into the room.
 
-        :*args:
+        :param args:
             One or more nicks to invite into the room.
         """
         for nick in args:
@@ -377,7 +377,6 @@ class IRCConnection(SingleServerIRCBot):
             [(server, port, password)],
             nickname,
             username,
-            reconnection_interval=reconnect_on_disconnect,
         )
 
     def connect(self, *args, **kwargs) -> None:
@@ -412,7 +411,7 @@ class IRCConnection(SingleServerIRCBot):
         # from the ChatRoom plugin joining channels from CHATROOM_PRESENCE
         # ends up blocking on connect.
         t = threading.Thread(target=self.bot.connect_callback)
-        t.setDaemon(True)
+        t.daemon = True
         t.start()
 
     def _pubmsg(self, e, notice: bool = False) -> None:

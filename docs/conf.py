@@ -12,7 +12,9 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import subprocess, sys, os
+import subprocess
+import sys
+import os
 sys.path.append(os.path.abspath('_themes'))
 sys.path.append(os.path.abspath('_themes/err'))
 sys.path.append(os.path.abspath('../'))
@@ -36,7 +38,6 @@ from errbot.version import VERSION
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
-    'sphinx_autodoc_annotation',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -79,7 +80,6 @@ release = VERSION
 exclude_patterns = [
     '_build',
     'error_pages/*',
-    'errbot.backends.campfire.rst',  # Broken on Python 3
     'errbot.backends.tox.rst',  # Also quite a pain to build at this stage
     '_gh-pages',
 ]
@@ -120,7 +120,7 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 
 
 def run_apidoc(_):
-    subprocess.check_call("sphinx-apidoc --separate -f -o . ../errbot", shell=True)
+    subprocess.check_call("sphinx-apidoc -T --separate -f -o . ../errbot ../errbot/config-template.py", shell=True)
 
 
 def run_repos_builder(*_):

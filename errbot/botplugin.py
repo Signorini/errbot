@@ -44,7 +44,7 @@ def recurse_check_structure(sample: Any, to_check: Any) -> None:
             recurse_check_structure(sample[0], element)
         return
 
-    if sample_type == dict:
+    if sample_type == dict: # noqa: E721
         for key in sample:
             if key not in to_check:
                 raise ValidationException(f"{to_check} doesn't contain the key {key}.")
@@ -128,15 +128,13 @@ class Command:
         self.definition = cmd_type(*((function,) + cmd_args), **cmd_kwargs)
 
     def append_args(self, args, kwargs):
-        from errbot import arg_botcmd, update_wrapper
+        from errbot import update_wrapper
 
         if hasattr(self.definition, "_err_command_parser"):
             update_wrapper(self.definition, args, kwargs)
         else:
             log.warning(
-                "Attempting to append arguments to {} isn't supported.".format(
-                    self.definition
-                )
+                f"Attempting to append arguments to {self.definition} isn't supported."
             )
 
 
@@ -305,8 +303,8 @@ class BotPluginBase(StoreMixin):
             },
         )
         self.current_timers.append(t)  # save the timer to be able to kill it
-        t.setName(f"Poller thread for {type(method.__self__).__name__}")
-        t.setDaemon(True)  # so it is not locking on exit
+        t.name = f"Poller thread for {type(method.__self__).__name__}"
+        t.daemon = True  # so it is not locking on exit
         t.start()
 
     def poller(
@@ -703,6 +701,7 @@ class BotPlugin(BotPluginBase):
             template_parameters=template_parameters,
             in_reply_to=in_reply_to,
             groupchat_nick_reply=groupchat_nick_reply,
+            plugin_name=self.name,
         )
 
     def build_identifier(self, txtrep: str) -> Identifier:

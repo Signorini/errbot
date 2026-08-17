@@ -1,9 +1,10 @@
 import importlib
 import logging
+import pathlib
 import sys
 import textwrap
 import unittest
-from os.path import abspath, sep
+from os.path import sep
 from queue import Empty, Queue
 from tempfile import mkdtemp
 from threading import Thread
@@ -48,6 +49,8 @@ class TestPerson(Person):
     from object instead and make sure it includes all properties and
     methods exposed by this class.
     """
+
+    __test__ = False
 
     def __init__(self, person, client=None, nick=None, fullname=None, email=None):
         self._person = person
@@ -107,6 +110,8 @@ class TestOccupant(TestPerson, RoomOccupant):
     DO NOT USE THIS DIRECTLY AS IT IS NOT COMPATIBLE WITH MOST BACKENDS,
     """
 
+    __test__ = False
+
     def __init__(self, person, room):
         super().__init__(person)
         self._room = room
@@ -125,6 +130,8 @@ class TestOccupant(TestPerson, RoomOccupant):
 
 
 class TestRoom(Room):
+    __test__ = False
+
     def invite(self, *args):
         pass
 
@@ -236,6 +243,18 @@ class TestRoom(Room):
 
     def __eq__(self, other):
         return self._name == other._name
+
+
+class TestRoomAcl(TestRoom):
+    def __init__(self, name, occupants=None, topic=None, bot=None):
+        super().__init__(name, occupants, topic, bot)
+
+    @property
+    def aclattr(self):
+        return self._name
+
+    def __str__(self):
+        return "not room name"
 
 
 class TestBackend(ErrBot):
@@ -503,6 +522,10 @@ class TestBot:
         log.info("Main bot thread quits")
         self.bot.zap_queues()
         self.bot.reset_rooms()
+        self.bot.thread_pool.close()
+        self.bot.thread_pool.join()
+        self.bot.flow_executor._pool.close()
+        self.bot.flow_executor._pool.join()
         self.bot_thread = None
 
     def pop_message(self, timeout: int = 5, block: bool = True):
@@ -547,12 +570,14 @@ class TestBot:
     def inject_mocks(self, plugin_name: str, mock_dict: dict):
         """Inject mock objects into the plugin
 
-        mock_dict = {
-            'field_1': obj_1,
-            'field_2': obj_2,
-        }
-        testbot.inject_mocks(HelloWorld, mock_dict)
-        assert 'blah' in testbot.exec_command('!hello')
+        Example::
+
+            mock_dict = {
+                'field_1': obj_1,
+                'field_2': obj_2,
+            }
+            testbot.inject_mocks(HelloWorld, mock_dict)
+            assert 'blah' in testbot.exec_command('!hello')
         """
         plugin = self.bot.plugin_manager.get_plugin_obj_by_name(plugin_name)
 
@@ -580,25 +605,31 @@ class FullStackTest(unittest.TestCase, TestBot):
                 self.assertIn('Err version', self.pop_message())
     """
 
+    def __init__(
+        self,
+        methodName,
+        extra_plugin_dir=None,
+        loglevel=logging.DEBUG,
+        extra_config=None,
+    ):
+        self.bot_thread = None
+        super().__init__(methodName)
+
     def setUp(
         self,
         extra_plugin_dir=None,
-        extra_test_file=None,
         loglevel=logging.DEBUG,
         extra_config=None,
     ) -> None:
         """
         :param extra_plugin_dir: Path to a directory from which additional
             plugins should be loaded.
-        :param extra_test_file: [Deprecated but kept for backward-compatibility,
-            use extra_plugin_dir instead]
-            Path to an additional plugin which should be loaded.
         :param loglevel: Logging verbosity. Expects one of the constants
             defined by the logging module.
         :param extra_config: Piece of extra bot config in a dict.
         """
-        if extra_plugin_dir is None and extra_test_file is not None:
-            extra_plugin_dir = sep.join(abspath(extra_test_file).split(sep)[:-2])
+        if extra_plugin_dir is None:
+            extra_plugin_dir = str(pathlib.Path(".").resolve().parent.parent.absolute())
 
         self.setup(
             extra_plugin_dir=extra_plugin_dir,

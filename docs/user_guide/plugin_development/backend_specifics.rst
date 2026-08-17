@@ -10,10 +10,11 @@ Additionally, interacting directly with the bot internals gives you the freedom
 to control Errbot in highly specific ways that may not be officially supported.
 
 .. warning::
-	The following instructions describe how to interface directly with the underlying bot object and clients of backends.
-	We offer no guarantees that these internal APIs are stable or that a given backend will continue to use a given client in the future.
-	The following information is provided **as-is** without any official support.
-	We can give **no** guarantees about API stability on the topics described below.
+
+    The following instructions describe how to interface directly with the underlying bot object and clients of backends.
+    We offer no guarantees that these internal APIs are stable or that a given backend will continue to use a given client in the future.
+    The following information is provided **as-is** without any official support.
+    We can give **no** guarantees about API stability on the topics described below.
 
 
 Getting to the bot object
@@ -24,8 +25,8 @@ For example, with the Telegram backend this would be an instance of :class:`~err
 
 .. code-block:: python
 
-	>>> type(self._bot)
-	<class 'errbot.backends.TelegramBackend'>
+    >>> type(self._bot)
+    <class 'errbot.backends.TelegramBackend'>
 
 To find out what methods each bot backend has, you can take a look at the documentation of the various backends in the :mod:`errbot.backends` package.
 
@@ -87,8 +88,8 @@ Backend                                       Library                    Attribu
 :class:`~errbot.backends.xmpp`                `slixmpp`_                 ``self._bot.conn``
 ============================================  =========================  ================================================
 
-.. _hypchat: https://pypi.python.org/pypi/hypchat/
-.. _irc: https://pypi.python.org/pypi/irc/
-.. _`telegram-python-bot`: https://pypi.python.org/pypi/python-telegram-bot
-.. _slackclient: https://pypi.python.org/pypi/slackclient/
-.. _slixmpp: https://pypi.python.org/pypi/slixmpp
+.. _hypchat: https://pypi.org/project/hypchat/
+.. _irc: https://pypi.org/project/irc/
+.. _`telegram-python-bot`: https://pypi.org/project/python-telegram-bot
+.. _slackclient: https://pypi.org/project/slackclient/
+.. _slixmpp: https://pypi.org/project/slixmpp

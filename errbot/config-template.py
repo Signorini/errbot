@@ -31,12 +31,11 @@ import logging
 # "Text"     - on the text console
 
 # Commercial backends:
-# "Campfire" - see https://campfirenow.com/ (follow instructions from https://github.com/errbotio/err-backend-campfire)
 # "Slack"    - see https://slack.com/
 # "Gitter"   - see https://gitter.im/ (follow instructions from https://github.com/errbotio/err-backend-gitter)
 
 # Open protocols:
-# "TOX"      - see https://tox.im/ (follow instructions from https://github.com/errbotio/err-backend-tox)
+# "TOX"      - see https://tox.chat/ (follow instructions from https://github.com/errbotio/err-backend-tox)
 # "IRC"      - for classic IRC or bridged services like https://gitter.im
 # "XMPP"     - the Extensible Messaging and Presence Protocol (https://xmpp.org/)
 # "Telegram" - cloud-based mobile and desktop messaging app with a focus
@@ -135,9 +134,11 @@ SENTRY_DSN = ""
 SENTRY_LOGLEVEL = BOT_LOG_LEVEL
 SENTRY_EVENTLEVEL = BOT_LOG_LEVEL
 
-# Set an optional Sentry transport other than the default Threaded.
-# For more info, see https://docs.sentry.io/error-reporting/configuration/?platform=python#transport-options
-# SENTRY_TRANSPORT = ("RequestsHTTPTransport", "raven.transport.requests")
+# Options that can be passed to sentry_sdk.init() at initialization time
+# Note that DSN should be specified via its dedicated config option
+# and that the 'integrations' setting cannot be set
+# e.g: SENTRY_OPTIONS = {"environment": "production"}
+SENTRY_OPTIONS = {}
 
 # Execute commands in asynchronous mode. In this mode, Errbot will spawn 10
 # separate threads to handle commands, instead of blocking on each

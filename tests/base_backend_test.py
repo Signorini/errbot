@@ -14,7 +14,13 @@ import pytest
 from errbot import arg_botcmd, botcmd, re_botcmd, templating  # noqa
 from errbot.backend_plugin_manager import BackendPluginManager
 from errbot.backends.base import ONLINE, Identifier, Message, Room
-from errbot.backends.test import ShallowConfig, TestOccupant, TestPerson, TestRoom
+from errbot.backends.test import (
+    ShallowConfig,
+    TestOccupant,
+    TestPerson,
+    TestRoom,
+    TestRoomAcl,
+)
 from errbot.bootstrap import CORE_STORAGE, bot_config_defaults
 from errbot.core import ErrBot
 from errbot.core_plugins.acls import ACLS
@@ -251,8 +257,14 @@ class DummyBackend(ErrBot):
 
 
 @pytest.fixture
-def dummy_backend():
-    return DummyBackend()
+def dummy_backend(request):
+    def on_finish():
+        backend.flow_executor._pool.close()
+        backend.flow_executor._pool.join()
+
+    backend = DummyBackend()
+    request.addfinalizer(on_finish)
+    return backend
 
 
 def test_buildreply(dummy_backend):
@@ -814,6 +826,16 @@ def test_access_controls(dummy_backend):
             message=makemessage(
                 dummy_backend,
                 "!command",
+                from_=TestOccupant("someone", "room"),
+                to=TestRoomAcl("room", bot=dummy_backend),
+            ),
+            acl={"command": {"allowrooms": ("room",)}},
+            expected_response="Regular command",
+        ),
+        dict(
+            message=makemessage(
+                dummy_backend,
+                "!command",
                 from_=TestOccupant("someone", "room_1"),
                 to=TestRoom("room1", bot=dummy_backend),
             ),
@@ -826,6 +848,16 @@ def test_access_controls(dummy_backend):
                 "!command",
                 from_=TestOccupant("someone", "room"),
                 to=TestRoom("room", bot=dummy_backend),
+            ),
+            acl={"command": {"allowrooms": ("anotherroom@localhost",)}},
+            expected_response="You're not allowed to access this command from this room",
+        ),
+        dict(
+            message=makemessage(
+                dummy_backend,
+                "!command",
+                from_=TestOccupant("someone", "room"),
+                to=TestRoomAcl("room", bot=dummy_backend),
             ),
             acl={"command": {"allowrooms": ("anotherroom@localhost",)}},
             expected_response="You're not allowed to access this command from this room",
@@ -977,9 +1009,9 @@ def test_access_controls(dummy_backend):
         dummy_backend.bot_config.ACCESS_CONTROLS = test.get("acl", {})
         dummy_backend.bot_config.BOT_ADMINS = test.get("bot_admins", ())
         logger = logging.getLogger(__name__)
-        logger.info("** message: {}".format(test["message"].body))
-        logger.info("** bot_admins: {}".format(dummy_backend.bot_config.BOT_ADMINS))
-        logger.info("** acl: {!r}".format(dummy_backend.bot_config.ACCESS_CONTROLS))
+        logger.info(f"** message: {test['message'].body}")
+        logger.info(f"** bot_admins: {dummy_backend.bot_config.BOT_ADMINS}")
+        logger.info(f"** acl: {dummy_backend.bot_config.ACCESS_CONTROLS}")
         logger.info(
             "** acl_default: {!r}".format(
                 dummy_backend.bot_config.ACCESS_CONTROLS_DEFAULT

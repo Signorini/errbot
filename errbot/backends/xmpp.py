@@ -1,9 +1,12 @@
+from __future__ import annotations
+
+import asyncio
 import logging
 import sys
 from datetime import datetime
 from functools import lru_cache
 from time import sleep
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 from errbot.backends.base import (
     AWAY,
@@ -26,7 +29,6 @@ log = logging.getLogger(__name__)
 try:
     from slixmpp import JID, ClientXMPP
     from slixmpp.exceptions import IqError
-    from slixmpp.xmlstream import cert, resolver
 
 except ImportError:
     log.exception("Could not start the XMPP backend")
@@ -272,7 +274,7 @@ class XMPPRoom(XMPPIdentifier, Room):
         """
         Invite one or more people into the room.
 
-        :*args:
+        :param args:
             One or more JID's to invite into the room.
         """
         room = str(self)
@@ -395,7 +397,7 @@ class XMPPConnection:
         self.connected = False
 
     def serve_forever(self) -> None:
-        self.client.process()
+        asyncio.get_event_loop().run_forever()
 
     def add_event_handler(self, name: str, cb: Callable) -> None:
         self.client.add_event_handler(name, cb)

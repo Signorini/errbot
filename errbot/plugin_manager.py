@@ -1,11 +1,13 @@
-""" Logic related to plugin loading and lifecycle """
+"""Logic related to plugin loading and lifecycle"""
+
 import logging
 import os
 import subprocess
 import sys
 import traceback
 from copy import deepcopy
-from importlib import machinery
+from graphlib import CycleError
+from graphlib import TopologicalSorter as BaseTopologicalSorter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
@@ -18,7 +20,7 @@ from .core_plugins.wsview import route
 from .plugin_info import PluginInfo
 from .storage import StoreMixin
 from .templating import add_plugin_templates_path, remove_plugin_templates_path
-from .utils import collect_roots, version2tuple
+from .utils import collect_roots, entry_point_plugins, version2tuple
 from .version import VERSION
 
 PluginInstanceCallback = Callable[[str, Type[BotPlugin]], BotPlugin]
@@ -75,7 +77,7 @@ def install_packages(req_path: Path):
     log.info('Installing packages from "%s".', req_path)
     # use sys.executable explicitly instead of just 'pip' because depending on how the bot is deployed
     # 'pip' might not be available on PATH: for example when installing errbot on a virtualenv and
-    # starting it with systemclt pointing directly to the executable:
+    # starting it with systemctl pointing directly to the executable:
     # [Service]
     # ExecStart=/home/errbot/.env/bin/errbot
     pip_cmdline = [sys.executable, "-m", "pip"]
@@ -165,6 +167,12 @@ CONFIGS = "configs"
 BL_PLUGINS = "bl_plugins"
 
 
+class TopologicalSorter(BaseTopologicalSorter):
+    def find_cycle(self):
+        """Wraps private method as public one."""
+        return self._find_cycle()
+
+
 class BotPluginManager(StoreMixin):
     def __init__(
         self,
@@ -236,13 +244,25 @@ class BotPluginManager(StoreMixin):
                 exc_info = install_packages(req_path)
                 if exc_info is not None:
                     typ, value, trace = exc_info
-                    feedback[
-                        path
-                    ] = f'{typ}: {value}\n{"".join(traceback.format_tb(trace))}'
+                    feedback[path] = (
+                        f'{typ}: {value}\n{"".join(traceback.format_tb(trace))}'
+                    )
             else:
                 msg, _ = check_dependencies(req_path)
                 if msg and path not in feedback:  # favor the first error.
                     feedback[path] = msg
+
+    def _is_excluded_core_plugin(self, plugin_info: PluginInfo) -> bool:
+        """Check if a plugin should be excluded based on the CORE_PLUGINS config directive"""
+        if (
+            plugin_info
+            and self.core_plugins
+            and plugin_info.core
+            and (plugin_info.name not in self.core_plugins)
+        ):
+            return True
+        else:
+            return False
 
     def _load_plugins_generic(
         self,
@@ -268,11 +288,7 @@ class BotPluginManager(StoreMixin):
                 dest_info_dict[name] = plugin_info
 
                 # Skip the core plugins not listed in CORE_PLUGINS if CORE_PLUGINS is defined.
-                if (
-                    self.core_plugins
-                    and plugin_info.core
-                    and (plugin_info.name not in self.core_plugins)
-                ):
+                if self._is_excluded_core_plugin(plugin_info):
                     log.debug(
                         "%s plugin will not be loaded because it's not listed in CORE_PLUGINS",
                         name,
@@ -287,9 +303,9 @@ class BotPluginManager(StoreMixin):
                     continue
                 if len(plugin_classes) > 1:
                     # TODO: This is something we can support as "subplugins" or something similar.
-                    feedback[
-                        path
-                    ] = "Contains more than one plugin, only one will be loaded."
+                    feedback[path] = (
+                        "Contains more than one plugin, only one will be loaded."
+                    )
 
                 # instantiate the plugin object.
                 _, clazz = plugin_classes[0]
@@ -327,7 +343,8 @@ class BotPluginManager(StoreMixin):
         :param path_list: the path list where to search for plugins.
         :return: the feedback for any specific path in case of error.
         """
-        repo_roots = (CORE_PLUGINS, self._extra_plugin_dir, path_list)
+        ep = entry_point_plugins(group="errbot.plugins")
+        repo_roots = (CORE_PLUGINS, self._extra_plugin_dir, path_list, ep)
 
         all_roots = collect_roots(repo_roots)
 
@@ -417,15 +434,19 @@ class BotPluginManager(StoreMixin):
         configs[name] = obj
         self[CONFIGS] = configs
 
-    def activate_non_started_plugins(self) -> None:
+    def activate_non_started_plugins(self) -> str:
         """
         Activates all plugins that are not activated, respecting its dependencies.
 
-        :return: Empty string if no problem occured or a string explaining what went wrong.
+        :return: Empty string if no problem occurred or a string explaining what went wrong.
         """
         log.info("Activate bot plugins...")
         errors = ""
-        for name, plugin in self.plugins.items():
+        for name in self.get_plugins_activation_order():
+            # We need both the plugin and the corresponding PluginInfo to check if we need to skip an excluded core plugin
+            plugin_info = self.plugin_infos.get(name)
+            plugin = self.plugins.get(name)
+
             try:
                 if self.is_plugin_blacklisted(name):
                     errors += (
@@ -433,6 +454,13 @@ class BotPluginManager(StoreMixin):
                         f'use "{self.plugins["Help"]._bot.prefix}plugin unblacklist {name}" to unblacklist it.\n'
                     )
                     continue
+                elif self._is_excluded_core_plugin(plugin_info):
+                    log.debug(
+                        "%s plugin will not be activated because it's excluded from CORE_PLUGINS",
+                        name,
+                    )
+                    continue
+
                 if not plugin.is_activated:
                     log.info("Activate plugin: %s.", name)
                     self.activate_plugin(name)
@@ -450,6 +478,29 @@ class BotPluginManager(StoreMixin):
                 log.exception(f"Error loading flow {name}.")
                 errors += f"Error: flow {name} failed to start: {e}.\n"
         return errors
+
+    def get_plugins_activation_order(self) -> List[str]:
+        """
+        Calculate plugin activation order, based on their dependencies.
+
+        :return: list of plugin names, in the best order to start them.
+        """
+        plugins_graph = {
+            name: set(info.dependencies) for name, info in self.plugin_infos.items()
+        }
+        plugins_in_cycle = set()
+        while True:
+            plugins_sorter = TopologicalSorter(plugins_graph)
+            try:
+                # Return plugins which are part of a circular dependency at the end,
+                # the rest of the code expects to have all plugins returned
+                return list(plugins_sorter.static_order()) + list(plugins_in_cycle)
+            except CycleError:
+                # Remove cycle from the graph, and
+                cycle = set(plugins_sorter.find_cycle())
+                plugins_in_cycle.update(cycle)
+                for plugin_name in cycle:
+                    plugins_graph.pop(plugin_name)
 
     def _activate_plugin(self, plugin: BotPlugin, plugin_info: PluginInfo) -> None:
         """
@@ -534,7 +585,6 @@ class BotPluginManager(StoreMixin):
     def _activate_plugin_dependencies(
         self, name: str, dep_track: Set[str]
     ) -> List[str]:
-
         plugin_info = self.plugin_infos[name]
         dep_track.add(name)
 

@@ -14,7 +14,7 @@ According to the `official website <https://www.getsentry.com/about/>`_...
 Come again? Just what is Sentry, exactly?
 -----------------------------------------
 
-The `official documentation <http://sentry.readthedocs.org/en/latest/index.html>`_
+The `official documentation <https://docs.sentry.io/platforms/python/>`_
 explains it better:
 
     Sentry is a realtime event logging and aggregation platform. At its core it
@@ -30,8 +30,8 @@ Setting up Sentry itself
 
 Installing and configuring sentry is beyond the scope of this document. However,
 there are two options available to you. You can either get a
-`hosted account <https://www.getsentry.com/pricing/>`_, or grab the code and
-`run your own server <http://sentry.readthedocs.org/en/latest/index.html>`_ instead.
+`hosted account <https://sentry.io/pricing>`_, or grab the code and
+`run your own server <https://develop.sentry.dev/self-hosted/>`_ instead.
 
 Configuring Errbot to use Sentry
 --------------------------------
@@ -49,9 +49,9 @@ To setup Errbot with Sentry:
 * Open up your bot's config.py
 * Set **BOT_LOG_SENTRY** to *True* and fill in **SENTRY_DSN** with the DSN value obtained previously
 * Optionally adjust **SENTRY_LOGLEVEL** to the desired level
-* Optionally adjust **SENTRY_TRANSPORT** to the desired transport
+* Optionally adjust **SENTRY_OPTIONS** to customise the rest of the initialization.
 * Restart Errbot
 
-You can find a list of Sentry transport classes `here <https://docs.sentry.io/clients/python/transports/>`_.
+You can find a list of `Sentry options <https://docs.sentry.io/platforms/python/configuration/options/>`_.
 
 You should now see Exceptions and log messages show up in your Sentry stream.

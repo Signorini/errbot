@@ -24,6 +24,12 @@ class Help(BotPlugin):
 
         return tags.pop(-1) if tags is not None else None
 
+    def may_access_command(self, m, cmd):
+        m, _, _ = self._bot._process_command_filters(
+            msg=m, cmd=cmd, args=None, dry_run=True
+        )
+        return m is not None
+
     # noinspection PyUnusedLocal
     @botcmd(template="about")
     def about(self, msg, args):
@@ -46,13 +52,13 @@ class Help(BotPlugin):
         description = "Available commands:\n"
 
         cls_commands = {}
-        for (name, command) in self._bot.all_commands.items():
+        for name, command in self._bot.all_commands.items():
             cls = self._bot.get_plugin_class_from_method(command)
             cls = str.__module__ + "." + cls.__name__  # makes the fuul qualified name
             commands = cls_commands.get(cls, [])
             if (
                 not self.bot_config.HIDE_RESTRICTED_COMMANDS
-                or self._bot.check_command_access(msg, name)[0]
+                or self.may_access_command(msg, name)
             ):
                 commands.append((name, command))
                 cls_commands[cls] = commands
@@ -60,7 +66,7 @@ class Help(BotPlugin):
         usage = ""
         for cls in sorted(cls_commands):
             commands = []
-            for (name, command) in cls_commands[cls]:
+            for name, command in cls_commands[cls]:
                 if name == "help":
                     continue
 
@@ -86,27 +92,19 @@ class Help(BotPlugin):
         """Returns a help string listing available options.
         Automatically assigned to the "help" command."""
 
-        def may_access_command(m, cmd):
-            m, _, _ = self._bot._process_command_filters(
-                msg=m, cmd=cmd, args=None, dry_run=True
-            )
-            return m is not None
-
-        def get_name(named):
-            return named.__name__.lower()
-
         # Normalize args to lowercase for ease of use
         args = args.lower() if args else ""
         usage = ""
         description = "### All commands\n"
 
         cls_obj_commands = {}
-        for (name, command) in self._bot.all_commands.items():
+        for name, command in self._bot.all_commands.items():
             cls = self._bot.get_plugin_class_from_method(command)
             obj = command.__self__
             _, commands = cls_obj_commands.get(cls, (None, []))
-            if not self.bot_config.HIDE_RESTRICTED_COMMANDS or may_access_command(
-                msg, name
+            if (
+                not self.bot_config.HIDE_RESTRICTED_COMMANDS
+                or self.may_access_command(msg, name)
             ):
                 commands.append((name, command))
                 cls_obj_commands[cls] = (obj, commands)
@@ -158,18 +156,18 @@ class Help(BotPlugin):
                 else:
                     description += cls.__errdoc__ or "\n\n"
                 pairs = []
-                for (name, command) in cmds:
+                for name, command in cmds:
                     if self.bot_config.HIDE_RESTRICTED_COMMANDS:
                         if command._err_command_hidden:
                             continue
 
-                        if not may_access_command(msg, name):
+                        if not self.may_access_command(msg, name):
                             continue
                     pairs.append((name, command))
 
                 pairs = sorted(pairs)
 
-                for (name, command) in pairs:
+                for name, command in pairs:
                     usage += self._cmd_help_line(name, command)
 
         return "".join(filter(None, [description, usage]))

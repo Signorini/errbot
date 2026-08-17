@@ -1,21 +1,28 @@
-FROM python:3.8-slim as BUILD
+ARG INSTALL_EXTRAS=irc,XMPP,telegram,slack
+
+FROM python:3.12 AS build
+ARG INSTALL_EXTRAS
+
 WORKDIR /wheel
+
 COPY . .
-RUN pip3 wheel --wheel-dir=/wheel \
-    errbot errbot[irc] errbot[slack] errbot[XMPP] errbot[telegram]
+RUN pip wheel --wheel-dir=/wheel wheel . .[${INSTALL_EXTRAS}]
 
-FROM python:3.8-slim
-COPY --from=BUILD /wheel /wheel
-RUN apt update && \
-    apt install -y git && \
-    cd /wheel && \
-    pip3 -vv install --no-cache-dir --no-index --find-links /wheel \
-    errbot errbot[irc] errbot[slack] errbot[XMPP] errbot[telegram] && \
-    rm -rf /wheel /var/lib/apt/lists/*
+FROM python:3.12-slim
+ARG INSTALL_EXTRAS
 
-RUN useradd -m errbot
+RUN --mount=from=build,source=/wheel,target=/wheel \
+    pip install --no-cache-dir --no-index --find-links /wheel \
+    errbot errbot[${INSTALL_EXTRAS}]
+
+RUN useradd --create-home --shell /bin/bash errbot
 USER errbot
+WORKDIR /home/errbot
+
+RUN errbot --init
+
 EXPOSE 3141 3142
 VOLUME /home/errbot
-WORKDIR /home/errbot
+STOPSIGNAL SIGINT
+
 ENTRYPOINT [ "/usr/local/bin/errbot" ]

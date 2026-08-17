@@ -3,9 +3,8 @@ import inspect
 import logging
 import re
 import shlex
-import sys
 from functools import wraps
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 from .backends.base import AWAY, DND, OFFLINE, ONLINE, Message  # noqa
 from .botplugin import (  # noqa
@@ -16,7 +15,7 @@ from .botplugin import (  # noqa
     ShlexArgParser,
     ValidationException,
 )
-from .core_plugins.wsview import WebView, route
+from .core_plugins.wsview import route
 from .flow import FLOW_END, BotFlow, Flow, FlowRoot
 
 __all__ = [
@@ -259,7 +258,7 @@ def botmatch(*args, **kwargs):
     """
     Decorator for regex-based message match.
 
-    :param *args: The regular expression a message should match against in order to
+    :param args: The regular expression a message should match against in order to
                    trigger the command.
     :param flags: The `flags` parameter which should be passed to :func:`re.compile()`. This
         allows the expression's behaviour to be modified, such as making it case-insensitive
@@ -377,9 +376,7 @@ def arg_botcmd(
         argparse_args = args[1:]
 
     def decorator(func):
-
         if not hasattr(func, "_err_command"):
-
             err_command_parser = ArgumentParser(
                 prog=name or func.__name__,
                 description=func.__doc__,
@@ -387,7 +384,6 @@ def arg_botcmd(
 
             @wraps(func)
             def wrapper(self, msg, args):
-
                 # Attempt to sanitize arguments of bad characters
                 try:
                     sanitizer_re = re.compile(
@@ -524,9 +520,9 @@ def webhook(
     if isinstance(args[0], str):  # first param is uri_rule.
         return lambda func: _tag_webhook(
             func,
-            args[0]
-            if args[0] == "/"
-            else args[0].rstrip("/"),  # trailing / is also be stripped on incoming.
+            (
+                args[0] if args[0] == "/" else args[0].rstrip("/")
+            ),  # trailing / is also be stripped on incoming.
             methods=methods,
             form_param=form_param,
             raw=raw,
@@ -566,7 +562,7 @@ def cmdfilter(*args, **kwargs):
                command is authorized or not.
             \"\"\"
             # If wishing to block the incoming command:
-            return None, None, None
+            return None, cmd, args
             # Otherwise pass data through to the (potential) next filter:
             return msg, cmd, args
 

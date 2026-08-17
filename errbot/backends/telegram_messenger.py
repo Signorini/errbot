@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Any, Optional, Union
+from typing import Any, BinaryIO, Optional, Union
 
 from errbot.backends.base import (
     ONLINE,

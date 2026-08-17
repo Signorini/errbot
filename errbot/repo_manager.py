@@ -6,9 +6,10 @@ import shutil
 import tarfile
 from collections import namedtuple
 from datetime import datetime, timedelta
+from importlib.metadata import distribution
 from os import path
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Generator, List, Optional, Sequence, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -91,40 +92,30 @@ def check_dependencies(req_path: Path) -> Tuple[Optional[str], Sequence[str]]:
     Or None, [] if everything is OK.
     """
     log.debug("check dependencies of %s", req_path)
-    # noinspection PyBroadException
-    try:
-        from pkg_resources import get_distribution
+    missing_pkg = []
 
-        missing_pkg = []
-
-        if not req_path.is_file():
-            log.debug("%s has no requirements.txt file", req_path)
-            return None, missing_pkg
-
-        with req_path.open() as f:
-            for line in f:
-                stripped = line.strip()
-                # skip empty lines.
-                if not stripped:
-                    continue
-
-                # noinspection PyBroadException
-                try:
-                    get_distribution(stripped)
-                except Exception:
-                    missing_pkg.append(stripped)
-        if missing_pkg:
-            return (
-                f"You need these dependencies for {req_path}: " + ",".join(missing_pkg),
-                missing_pkg,
-            )
+    if not req_path.is_file():
+        log.debug("%s has no requirements.txt file", req_path)
         return None, missing_pkg
-    except Exception:
-        log.exception("Problem checking for dependencies.")
+
+    with req_path.open() as f:
+        for line in f:
+            stripped = line.strip()
+            # skip empty lines.
+            if not stripped:
+                continue
+
+            # noinspection PyBroadException
+            try:
+                distribution(stripped)
+            except Exception:
+                missing_pkg.append(stripped)
+    if missing_pkg:
         return (
-            "You need to have setuptools installed for the dependency check of the plugins",
-            [],
+            f"You need these dependencies for {req_path}: " + ",".join(missing_pkg),
+            missing_pkg,
         )
+    return None, missing_pkg
 
 
 class BotRepoManager(StoreMixin):
@@ -274,14 +265,16 @@ class BotRepoManager(StoreMixin):
         if repo_url.endswith("tar.gz"):
             fo = urlopen(repo_url)  # nosec
             tar = tarfile.open(fileobj=fo, mode="r:gz")
-            tar.extractall(path=self.plugin_dir)
+            tar.extractall(path=self.plugin_dir, filter="data")
             s = repo_url.split(":")[-1].split("/")[-1]
             human_name = s[: -len(".tar.gz")]
         else:
             human_name = human_name or human_name_for_git_url(repo_url)
             try:
                 git_clone(repo_url, os.path.join(self.plugin_dir, human_name))
-            except Exception as exception:  # dulwich errors all base on exceptions.Exception
+            except (
+                Exception
+            ) as exception:  # dulwich errors all base on exceptions.Exception
                 raise RepoException(
                     f"Could not load this plugin: \n\n{repo_url}\n\n---\n\n{exception}"
                 )

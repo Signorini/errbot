@@ -1,8 +1,11 @@
 import collections
 import fnmatch
+import importlib.metadata
+import importlib.util
 import inspect
 import logging
 import os
+import pathlib
 import re
 import sys
 import time
@@ -194,6 +197,27 @@ def collect_roots(base_paths: List, file_sig: str = "*.plug") -> List:
         elif path_or_list is not None:
             result.extend(find_roots(path_or_list, file_sig))
     return list(collections.OrderedDict.fromkeys(result))
+
+
+def entry_point_plugins(group):
+    paths = set()
+
+    for ep in importlib.metadata.entry_points(group=group):
+        # 1. Spec-based discovery (Handles editable installs)
+        try:
+            spec = ep.module and importlib.util.find_spec(ep.module)
+            if spec and spec.origin:
+                paths.add(str(pathlib.Path(spec.origin).resolve().parent))
+                continue
+        except Exception:
+            log.debug(f"Spec-based discovery failed for entry point {ep.name} (module {ep.module})", exc_info=True)
+
+        # 2. Files-based discovery (Fallback for regular installs)
+        for f in (ep.dist and ep.dist.files) or ():
+            if "__pycache__" not in f.parts:
+                paths.add(str(f.locate().absolute().resolve().parent))
+
+    return list(paths)
 
 
 def global_restart() -> None:

@@ -4,18 +4,19 @@ import random
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from typing import Any, BinaryIO, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, BinaryIO, List, Mapping, Optional, Sequence, Tuple, Type
 
 log = logging.getLogger(__name__)
 
 
 class Identifier(ABC):
     """This is just use for type hinting representing the Identifier contract,
+
     NEVER TRY TO SUBCLASS IT OUTSIDE OF A BACKEND, it is just here to show you what you can expect from an Identifier.
     To get an instance of a real identifier, always use the properties from Message (to, from) or self.build_identifier
-     to make an identifier from a String.
+    to make an identifier from a String.
 
-     The semantics is anything you can talk to: Person, Room, RoomOccupant etc.
+    The semantics is anything you can talk to: Person, Room, RoomOccupant etc.
     """
 
     pass
@@ -23,9 +24,10 @@ class Identifier(ABC):
 
 class Person(Identifier):
     """This is just use for type hinting representing the Identifier contract,
+
     NEVER TRY TO SUBCLASS IT OUTSIDE OF A BACKEND, it is just here to show you what you can expect from an Identifier.
     To get an instance of a real identifier, always use the properties from Message (to, from) or self.build_identifier
-     to make an identifier from a String.
+    to make an identifier from a String.
     """
 
     @property
@@ -140,6 +142,13 @@ class Room(Identifier):
         )
 
     @property
+    def aclattr(self) -> str:
+        """
+        :return: returns the unique identifier that will be used for ACL matches.
+        """
+        return str(self)
+
+    @property
     def exists(self) -> bool:
         """
         Boolean indicating whether this room already exists or not.
@@ -214,7 +223,7 @@ class Room(Identifier):
         """
         Invite one or more people into the room.
 
-        :*args:
+        :param args:
             One or more identifiers to invite into the room.
         """
         raise NotImplementedError(
@@ -382,7 +391,7 @@ class Message:
         return self._extras
 
     @property
-    def flow(self) -> "Flow":
+    def flow(self) -> Type["errbot.Flow"]: # noqa: F821
         """
         Get the conversation flow for this message.
 
@@ -583,7 +592,6 @@ class Reaction:
         reaction_name: str = None,
         reacted_to: Mapping = None,
     ):
-
         if reactor is None:
             raise ValueError("Reaction: reactor is None")
         if reaction_name is None:

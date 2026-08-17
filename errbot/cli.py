@@ -19,15 +19,15 @@ import ast
 import logging
 import os
 import sys
+from collections.abc import Mapping
 from os import W_OK, access, getcwd, path, sep
 from pathlib import Path
 from platform import system
-from typing import Optional, Union
 
 from errbot.bootstrap import CORE_BACKENDS
 from errbot.logs import root_logger
 from errbot.plugin_wizard import new_plugin_wizard
-from errbot.utils import collect_roots
+from errbot.utils import collect_roots, entry_point_plugins
 from errbot.version import VERSION
 
 log = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def get_config(config_path: str):
         log.error(f"I cannot find the config file {config_path}.")
         log.error("You can change this path with the -c parameter see --help")
         log.info(
-            f'You can use the template {os.path.realpath(os.path.join(__file__, os.pardir, "config-template.py"))}'
+            f"You can use the template {os.path.realpath(os.path.join(__file__, os.pardir, 'config-template.py'))}"
             f" as a base and copy it to {config_path}."
         )
         log.info("You can then customize it.")
@@ -82,11 +82,9 @@ def get_config(config_path: str):
         exit(-1)
 
 
-def _read_dict() -> dict:
-    import collections
-
+def _read_dict() -> Mapping:
     new_dict = ast.literal_eval(sys.stdin.read())
-    if not isinstance(new_dict, collections.Mapping):
+    if not isinstance(new_dict, Mapping):
         raise ValueError(
             f"A dictionary written in python is needed from stdin. "
             f"Type={type(new_dict)}, Value = {repr(new_dict)}."
@@ -95,7 +93,6 @@ def _read_dict() -> dict:
 
 
 def main() -> None:
-
     execution_dir = getcwd()
 
     # By default insert the execution path (useful to be able to execute Errbot from
@@ -209,6 +206,7 @@ def main() -> None:
 
             data_dir = base_dir / "data"
             extra_plugin_dir = base_dir / "plugins"
+            extra_backend_plugin_dir = base_dir / "backend-plugins"
             example_plugin_dir = extra_plugin_dir / "err-example"
             log_path = base_dir / "errbot.log"
 
@@ -220,6 +218,7 @@ def main() -> None:
 
             data_dir.mkdir(exist_ok=True)
             extra_plugin_dir.mkdir(exist_ok=True)
+            extra_backend_plugin_dir.mkdir(exist_ok=True)
             example_plugin_dir.mkdir(exist_ok=True)
 
             with open(base_dir / "config.py", "w") as f:
@@ -227,6 +226,7 @@ def main() -> None:
                     config_template.render(
                         data_dir=str(data_dir),
                         extra_plugin_dir=str(extra_plugin_dir),
+                        extra_backend_plugin_dir=str(extra_backend_plugin_dir),
                         log_path=str(log_path),
                     )
                 )
@@ -281,6 +281,8 @@ def main() -> None:
     extra_backend = getattr(config, "BOT_EXTRA_BACKEND_DIR", [])
     if isinstance(extra_backend, str):
         extra_backend = [extra_backend]
+    ep = entry_point_plugins(group="errbot.backend_plugins")
+    extra_backend.extend(ep)
 
     if args["list"]:
         from errbot.backend_plugin_manager import enumerate_backend_plugins

@@ -18,7 +18,7 @@ class Plugins(BotPlugin):
         """install a plugin repository from the given source or a known public repo (see !repos to find those).
         for example from a known repo: !install err-codebot
         for example a git url: git@github.com:gbin/plugin.git
-        or an url towards a tar.gz archive: http://www.gootz.net/plugin-latest.tar.gz
+        or an url towards an archive: https://github.com/errbotio/err-helloworld/archive/refs/heads/master.zip
         """
         args = args.strip()
         if not args:
@@ -76,7 +76,6 @@ class Plugins(BotPlugin):
         repos = {"repos": []}
 
         for repo_name in all_names:
-
             installed = False
 
             if repo_name in installed_repos:
@@ -168,7 +167,7 @@ class Plugins(BotPlugin):
 
         if len(args) == 1:
             response = (
-                f"Default configuration for this plugin (you can copy and paste this directly as a command):"
+                f"Default configuration for this plugin (you can copy and paste this directly as a single line command):"
                 f"\n\n```\n{self._bot.prefix}plugin config {plugin_name} {pformat(template_obj)}\n```"
             )
 
@@ -188,7 +187,7 @@ class Plugins(BotPlugin):
         except Exception:
             self.log.exception("Invalid expression for the configuration of the plugin")
             return "Syntax error in the given configuration"
-        if type(real_config_obj) != type(template_obj):
+        if type(real_config_obj) is not type(template_obj):
             return "It looks fishy, your config type is not the same as the template!"
 
         self._bot.plugin_manager.set_plugin_configuration(plugin_name, real_config_obj)

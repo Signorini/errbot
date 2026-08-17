@@ -55,12 +55,8 @@ class ErrBot(Backend, StoreMixin):
             log.debug(
                 "created a thread pool of size %d.", bot_config.BOT_ASYNC_POOLSIZE
             )
-        self.commands = (
-            {}
-        )  # the dynamically populated list of commands available on the bot
-        self.re_commands = (
-            {}
-        )  # the dynamically populated list of regex-based commands available on the bot
+        self.commands = {}  # the dynamically populated list of commands available on the bot
+        self.re_commands = {}  # the dynamically populated list of regex-based commands available on the bot
         self.command_filters = []  # the dynamically populated list of filters
         self.MSG_UNKNOWN_COMMAND = (
             'Unknown command: "%(command)s". '
@@ -196,6 +192,7 @@ class ErrBot(Backend, StoreMixin):
         template_parameters,
         in_reply_to: Optional[Message] = None,
         groupchat_nick_reply: bool = False,
+        plugin_name: str = None,
     ) -> Callable:
         """Sends a simple message to the specified user using a template.
 
@@ -207,8 +204,12 @@ class ErrBot(Backend, StoreMixin):
             the original message the bot is answering from
         :param groupchat_nick_reply:
             authorized the prefixing with the nick form the user
+        :param plugin_name:
+            the name of the plugin that is calling this method, to use it as a template namespace.
         """
-        text = self.process_template(template_name, template_parameters)
+        text = self.process_template(
+            template_name, template_parameters, plugin_name=plugin_name
+        )
         return self.send(identifier, text, in_reply_to, groupchat_nick_reply)
 
     def split_and_send_message(self, msg: Message) -> None:
@@ -287,8 +288,6 @@ class ErrBot(Backend, StoreMixin):
         log.debug("*** username = %s", username)
         log.debug("*** text = %s", text)
 
-        suppress_cmd_not_found = self.bot_config.SUPPRESS_CMD_NOT_FOUND
-
         prefixed = False  # Keeps track whether text was prefixed with a bot prefix
         only_check_re_command = (
             False  # Becomes true if text is determed to not be a regular command
@@ -324,10 +323,6 @@ class ErrBot(Backend, StoreMixin):
                 'Assuming "%s" to be a command because BOT_PREFIX_OPTIONAL_ON_CHAT is True',
                 text,
             )
-            # In order to keep noise down we surpress messages about the command
-            # not being found, because it's possible a plugin will trigger on what
-            # was said with trigger_message.
-            suppress_cmd_not_found = True
         elif not text.startswith(self.bot_config.BOT_PREFIX):
             only_check_re_command = True
         if text.startswith(self.bot_config.BOT_PREFIX):
@@ -335,22 +330,26 @@ class ErrBot(Backend, StoreMixin):
             prefixed = True
 
         text = text.strip()
-        text_split = text.split()
         cmd = None
         command = None
         args = ""
         if not only_check_re_command:
-            i = len(text_split)
+            first = True
+            i = len(text.split())
             while cmd is None:
+                # maxsplit so we can preserve linebreaks and other whitespace in args
+                text_split = text.split(maxsplit=i)
                 command = "_".join(text_split[:i])
 
                 with self._gbl:
                     if command in self.commands:
                         cmd = command
-                        args = " ".join(text_split[i:])
+                        if not first:
+                            args = text_split[-1]
                     else:
                         i -= 1
-                if i == 0:
+                        first = False
+                if i <= 0:
                     break
 
             if (
@@ -426,7 +425,7 @@ class ErrBot(Backend, StoreMixin):
             for cmd_filter in self.command_filters:
                 msg, cmd, args = cmd_filter(msg, cmd, args, dry_run)
                 if msg is None:
-                    return None, None, None
+                    return None, cmd, args
             return msg, cmd, args
         except Exception:
             log.exception(
@@ -440,7 +439,7 @@ class ErrBot(Backend, StoreMixin):
         # first it must go through the command filters
         msg, cmd, args = self._process_command_filters(msg, cmd, args, False)
         if msg is None:
-            log.info("Command %s blocked or deferred.", cmd)
+            log.info("Command \"%s\" blocked or deferred.", cmd)
             return
 
         frm = msg.frm
@@ -510,14 +509,32 @@ class ErrBot(Backend, StoreMixin):
             )
 
     @staticmethod
-    def process_template(template_name, template_parameters):
+    def process_template(template_name, template_parameters, plugin_name: str = None):
+        """
+        Processes a template with the given parameters.
+
+        :param template_name: the name of the template to use.
+        :param template_parameters: the parameters to pass to the template.
+        :param plugin_name: the name of the plugin to use as a template namespace.
+        """
         # integrated templating
         # The template needs to be set and the answer from the user command needs to be a mapping
         # If not just convert the answer to string.
         if template_name and isinstance(template_parameters, Mapping):
-            return (
-                tenv().get_template(template_name + ".md").render(**template_parameters)
-            )
+            t_name = template_name + ".md"
+            if plugin_name:
+                try:
+                    return (
+                        tenv()
+                        .get_template(f"{plugin_name}/{t_name}")
+                        .render(**template_parameters)
+                    )
+                except Exception:
+                    log.debug(
+                        f"Template {t_name} not found in plugin {plugin_name} namespace, falling back to global search."
+                    )
+
+            return tenv().get_template(t_name).render(**template_parameters)
 
         # Reply should be all text at this point (See https://github.com/errbotio/errbot/issues/96)
         return str(template_parameters)
@@ -560,13 +577,16 @@ class ErrBot(Backend, StoreMixin):
                 )
                 return
 
+            plugin_name = getattr(getattr(method, "__self__", None), "name", None)
             if inspect.isgeneratorfunction(method):
                 replies = method(msg, match) if match else method(msg, args)
                 for reply in replies:
                     if reply:
                         self.send_simple_reply(
                             msg,
-                            self.process_template(template_name, reply),
+                            self.process_template(
+                                template_name, reply, plugin_name=plugin_name
+                            ),
                             private,
                             threaded,
                         )
@@ -575,7 +595,9 @@ class ErrBot(Backend, StoreMixin):
                 if reply:
                     self.send_simple_reply(
                         msg,
-                        self.process_template(template_name, reply),
+                        self.process_template(
+                            template_name, reply, plugin_name=plugin_name
+                        ),
                         private,
                         threaded,
                     )
@@ -586,7 +608,9 @@ class ErrBot(Backend, StoreMixin):
         except CommandError as command_error:
             reason = command_error.reason
             if command_error.template:
-                reason = self.process_template(command_error.template, reason)
+                reason = self.process_template(
+                    command_error.template, reason, plugin_name=plugin_name
+                )
             self.send_simple_reply(msg, reason, private, threaded)
 
         except Exception as e:
@@ -825,7 +849,7 @@ class ErrBot(Backend, StoreMixin):
         if self.prefix == "!":
             return command.__doc__
         ununderscore_keys = (m.replace("_", " ") for m in self.all_commands.keys())
-        pat = re.compile(fr'!({"|".join(ununderscore_keys)})')
+        pat = re.compile(rf'!({"|".join(ununderscore_keys)})')
         return re.sub(pat, self.prefix + "\1", command.__doc__)
 
     @staticmethod

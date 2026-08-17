@@ -1,4 +1,117 @@
-v6.1.9 (unreleased)
+v9.9.9 (unreleased)
+-------------------
+- chore: add releases script (#1767)
+- refactor: remove webtest dependency (#1769)
+- feat: support editable installed entrypoint plugins (#1766)
+- fix: XMPP backend referencing invalid method (#1768)
+- fix: XMPP support on python 3.10 (#1771)
+- chore: bump actions/checkout version (#1772, #1776)
+- chore: bump actions/setup-python version (#1773, #1775)
+- refactor: switch to pyproject.toml (#1753)
+- chore: bump dependencies (#1774, #1777)
+
+
+v6.2.1 (2026-06-06)
+-------------------
+
+fixes:
+
+- docs: add unreleased section (#1681)
+- fix: check only activate plugins listed in CORE_PLUGINS (#1601)
+- chore: bump jinja to 3.1.3 (#1684)
+- chore: bump actions/setup-python version (#1686, #1700, #1708, #1738, #1751)
+- chore: bump actions/checkout version (#1696, #1704, #1737, #1750, #1765)
+- chore: optimize Dockerfile (#1679)
+- docs: fix telegram install command (#1697)
+- chore: add python versions to test (#1705)
+- chore: remove python 3.8 support (#1707)
+- chore: use ruff for formatting (#1706)
+- chore: bump setuptools to 75.7.0 (#1709)
+- chore: bump pyOpenSSL to 24.3.0 (#1710)
+- chore: bump jinja2 to 3.1.5 and requests to 2.32.0 (#1714)
+- Fix: situationally broken apropos command (#1711)
+- chore: bump requests to 2.32.3 (#1715)
+- Fix: Newlines replaced with spaces in botcmd args (#1716)
+- chore: bump jinja2 to 3.1.6 (#1723)
+- chore: update errbot-backend-slackv3 version to 0.3.1 (#1725)
+- fix: Close and join thread pools between tests (#1724)
+- fix: type hints (#1698)
+- fix: update plugin config message (#1727)
+- docs: add example on how to use threaded replies (#1728)
+- fix: add extra_plugin_dir support to FullStackTest (#1726)
+- fix: add missing py 3.13 in tox (#1731)
+- fix: add filter to tar extract (#1730)
+- refactor: use importlib to find plugins in entry_points (#1669, #1733)
+- chore: bump setuptools to >=78.1.1 (#1734)
+- docs: update tox chat server URLs (#1739)
+- chore: update Dockerfile python version (#1744)
+- chore: update errbot-backend-slackv3 version to 0.3.2 (#1743)
+- fix: allow webtest to work on python 3.13 (#1729)
+- fix: add command in logged when blocked by cmdfilter (#1631)
+- chore: bump pyasn1 version (#1752)
+- chore: remove python 3.9 support (#1755)
+- chore: bump all dependencies (#1754)
+- feat: Add LXC image build (#1756)
+- chore: bump docker/setup-buildx-action version (#1758)
+- chore: bump docker/build-push-action version (#1759)
+- chore: bump docker/login-action version (#1760)
+- chore: bump docker/setup-qemu-action version (#1761)
+- docs: add command parameter section and minor doc edits (#1740)
+- chore: bump actions/upload-artifact version (#1762)
+- docs: add positional argument with default example (#1763)
+- feat: unique template names (#1764)
+
+
+v6.2.0 (2024-01-01)
+-------------------
+
+breaking:
+
+- backend/slack: remove slack and slack_rtm built-in backends (#1581)
+- core/logging: deprecate SENTRY_TRANSPORT config (#1604)
+- core: removing py37 support (#1652)
+
+features:
+
+- core/plugins: detect plugins using entrypoints (#1590)
+- core/logging: add new SENTRY_OPTIONS config (#1597)
+- core/plugins: make slack, mattermost and discord backends available as install requirements (#1611)
+
+fixes:
+
+- docs: add unreleased section (#1576)
+- docs: update broken URL for Markdown Extra (#1572)
+- chore: bump actions/setup-python version (#1575, #1593, #1609, #1626, #1642, #1650, #1659, #1674)
+- backend/telegram: fix missing imports (#1574)
+- chore: ci improvements (#1577, #1583)
+- chore: add docs build to ci (#1582)
+- backend/xmpp: fix forward type references (#1578)
+- chore: remove campfire references (#1584)
+- chore/setup: fix exception when installing on python <3.7 (#1585)
+- docs: typos (#1589, #1594)
+- chore: simplify isort config using black (#1595)
+- fix: detecting entrypoint module paths (#1603)
+- chore: fix Docker build to use local tree (#1608)
+- chore: bump actions/checkout version (#1610, #1625, #1637, #1644, #1653, #1656, #1658, #1663)
+- docs: link to external Discord plugin documentation (#1615)
+- chore: add ARG to Dockerfile and add proper stop signal (#1613)
+- fix: update module versions and build (#1627)
+- chore: update setuptools version (#1628)
+- refactor: detecting entry point plugins (#1630)
+- chore: bump mr-smithers-excellent/docker-build-push version (#1633)
+- docs: fix example code in the testing section (#1643)
+- chore: update all core dependencies (#1651)
+- fix: use template file for webserver plugin echo output (#1654)
+- chore: update repos.json (#1660, #1741)
+- docs: add readthedocs yaml config (#1661)
+- fix: broken integration tests (#1668)
+- style: replace format() with f-strings (#1667)
+- migrate from external mock package to stdlib unittest.mock (#1673)
+- fix: import of Mapping from collections.abc (#1675)
+- backend: update irc, telegram and xmpp dependencies (#1655)
+
+
+v6.1.9 (2022-06-11)
 -------------------
 
 features:
@@ -6,6 +119,10 @@ features:
 - core: set default backend to Text (#1522)
 - core: option to divert all commands to private or thread (#1528)
 - core: add type hints to core and backend functions (#1542)
+- docs: add ACL and numerous backends to official documentation (#1552)
+- core: add Python 3.10 to automated tests (#1539)
+- core: add room acl attribute (#1530)
+- chore: refactor Dockerfile errbot install and python version bump (#1571)
 
 fixes:
 
@@ -21,6 +138,17 @@ fixes:
 - docs: update spark plugin reference (#1546)
 - fix: python 2 version references in docs and init template (#1543)
 - backends: deprecate built-in Slack and SlackRTM (#1526)
+- chore: remove python 3.6 checks and test environment (#1540)
+- chore: add/update issue templates (#1554)
+- chore: pin all package dependencies (#1553, #1559)
+- core/webserver: use errbot loglevel for consistent logging. (#1556)
+- fix/core: prevent infinite loop when only BOT_PREFIX is passed (#1557)
+- chore: bump actions/setup-python from 2 to 3.1.0 (#1563)
+- chore: Set permissions for GitHub actions (#1565)
+- fix: removed deprecated argument reconnection_interval for irc v20.0 (#1568)
+- docs: Add Gentoo packages (#1567)
+- chore: bump actions/setup-python from 3.1.0 to 3.1.2 (#1564)
+- fix: circular dependencies error when there are none (#1505)
 
 v6.1.8 (2021-06-21)
 -------------------
@@ -37,7 +165,7 @@ features:
 fixes:
 
 - core/cli: failure when passing relative directory during --init (#1511)
-- backend/xmpp: include message delayed for send/recieved messages (#1270)
+- backend/xmpp: include message delayed for send/received messages (#1270)
 - backend/xmpp: "unexpected keyword argument 'wait'" when connecting (#1507)
 - docs: update broken readme link to plugin development docs (#1504)
 - close threadpool on exit (#1486)

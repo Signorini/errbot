@@ -43,20 +43,19 @@ Chat servers support
 **Built-in**
 
 - IRC support
-- `Slack support <https://slack.com/>`_
 - `Telegram support <https://www.telegram.org/>`_
 - `XMPP support <http://xmpp.org>`_
 
 **With add-ons**
 
-- `CampFire <https://campfirenow.com/>`_ (See `instructions <https://github.com/errbotio/err-backend-campfire>`__)
-- `Webex <https://www.webex.com/>`_ (See `instructions <https://github.com/marksull/err-backend-cisco-webex-teams>`__)
-- `Discord <https://www.discordapp.com/>`_ (See `instructions <https://github.com/gbin/err-backend-discord>`__)
+- `Slack support <https://slack.com/>`_ (See `instructions <https://github.com/errbotio/err-backend-slackv3>`__)
+- `Discord <https://www.discordapp.com/>`_ (See `instructions <https://github.com/errbotio/err-backend-discord>`__)
 - `Gitter support <https://gitter.im/>`_ (See `instructions <https://github.com/errbotio/err-backend-gitter>`__)
+- `Webex <https://www.webex.com/>`_ (See `instructions <https://github.com/marksull/err-backend-cisco-webex-teams>`__)
 - `Mattermost <https://about.mattermost.com/>`_ (See `instructions <https://github.com/Vaelor/errbot-mattermost-backend>`__)
 - `RocketChat <https://rocket.chat/>`_ (See `instructions <https://github.com/cardoso/errbot-rocketchat>`__)
 - `Skype <https://www.skype.com/>`_ (See `instructions <https://github.com/errbotio/errbot-backend-skype>`__)
-- `TOX <https://tox.im/>`_ (See `instructions <https://github.com/errbotio/err-backend-tox>`__)
+- `TOX <https://tox.chat/>`_ (See `instructions <https://github.com/errbotio/err-backend-tox>`__)
 - `VK <https://vk.com/>`_ (See `instructions <https://github.com/Ax3Effect/errbot-vk>`__)
 - `Zulip <https://zulipchat.com/>`_ (See `instructions <https://github.com/zulip/errbot-backend-zulip>`__)
 
@@ -80,7 +79,7 @@ Developer features
 - Presetup storage for every plugin i.e. ``self['foo'] = 'bar'`` persists the value.
 - Conversation flows to track conversation states from users.
 - Webhook callbacks support
-- supports `markdown extras <https://pythonhosted.org/Markdown/extensions/extra.html>`_ formatting with tables, embedded images, links etc.
+- supports `markdown extras <https://markdown-extra.readthedocs.io/>`_ formatting with tables, embedded images, links etc.
 - configuration helper to allow your plugin to be configured by chat
 - Text development/debug consoles
 - Self-documenting: your docstrings become help automatically
@@ -107,7 +106,7 @@ Installation
 Prerequisites
 ~~~~~~~~~~~~~
 
-Errbot runs under Python 3.6+ on Linux, Windows and Mac. For some chatting systems you'll need a key or a login for your bot to access it.
+Errbot runs under Python 3.10+ on Linux, Windows and Mac. For some chatting systems you'll need a key or a login for your bot to access it.
 
 Quickstart
 ~~~~~~~~~~
@@ -131,12 +130,12 @@ It will show you a prompt `>>>` so you can talk to your bot directly! Try `!help
 Adding support for a chat system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For the built-ins, just use one of those options `slack, telegram, IRC, XMPP` with pip, you can still do it
+For the built-ins, just use one of those options `telegram, IRC, XMPP` with pip, you can still do it
 after the initial installation to add the missing support for example ::
 
-   $ pip install "errbot[slack]"
+   $ pip install "errbot[irc]"
 
-For the external ones (Skype, Gitter, Discord etc ...), please follow their respective github pages for instructions.
+For the external ones (Slack, Discord, Gitter, Skype, etc ...), please follow their respective github pages for instructions.
 
 Configuration
 ~~~~~~~~~~~~~

@@ -7,9 +7,9 @@ from os import mkdir, path
 from queue import Empty
 from shutil import rmtree
 from tempfile import mkdtemp
+from unittest.mock import MagicMock
 
 import pytest
-from mock import MagicMock
 
 extra_plugin_dir = path.join(path.dirname(path.realpath(__file__)), "dummy_plugin")
 
@@ -57,6 +57,16 @@ def test_echo(testbot):
     assert "foo" in testbot.exec_command("!echo foo")
 
 
+def test_echo_newline_args(testbot):
+    # https://github.com/errbotio/errbot/issues/1307
+    assert testbot.exec_command("!echo\nfoo\nbar").startswith("foo")
+
+
+def test_echo_newline_preserved(testbot):
+    # https://github.com/errbotio/errbot/issues/1716
+    assert "\n" in testbot.exec_command("!echo foo\nbar")
+
+
 def test_status_gc(testbot):
     assert "GC 0->" in testbot.exec_command("!status gc")
 
@@ -65,7 +75,7 @@ def test_config_cycle(testbot):
     testbot.push_message("!plugin config Webserver")
     m = testbot.pop_message()
     assert (
-        "Default configuration for this plugin (you can copy and paste this directly as a command)"
+        "Default configuration for this plugin (you can copy and paste this directly as a single line command)"
         in m
     )
     assert "Current configuration" not in m
@@ -107,15 +117,12 @@ def test_history(testbot):
 
 
 def test_plugin_cycle(testbot):
-
     plugins = [
         "errbotio/err-helloworld",
     ]
 
     for plugin in plugins:
-        testbot.assertInCommand(
-            "!repos install {0}".format(plugin), "Installing {0}...".format(plugin)
-        ),
+        testbot.assertInCommand(f"!repos install {plugin}", f"Installing {plugin}..."),
         assert (
             "A new plugin repository has been installed correctly from errbotio/err-helloworld"
             in testbot.pop_message(timeout=60)
@@ -155,7 +162,6 @@ def test_plugin_cycle(testbot):
 
 
 def test_broken_plugin(testbot):
-
     borken_plugin_dir = path.join(
         path.dirname(path.realpath(__file__)), "borken_plugin"
     )
@@ -169,6 +175,10 @@ def test_broken_plugin(testbot):
         )
         assert "import borken  # fails" in testbot.pop_message()
         assert "as it did not load correctly." in testbot.pop_message()
+        assert (
+            "Error: Broken failed to activate: "
+            "'NoneType' object has no attribute 'is_activated'"
+        ) in testbot.pop_message()
         assert "Plugins reloaded." in testbot.pop_message()
     finally:
         rmtree(tempd)
@@ -224,12 +234,12 @@ def test_webserver_webhook_test(testbot):
         "!plugin config Webserver {'HOST': 'localhost', 'PORT': 3141, 'SSL':  None}"
     )
     assert "Plugin configuration done." in testbot.pop_message()
-    testbot.assertInCommand("!webhook test /echo toto", "Status code : 200")
+    testbot.assertInCommand("!webhook test /echo toto", "Status code: 200")
 
 
 def test_activate_reload_and_deactivate(testbot):
     for command in ("activate", "reload", "deactivate"):
-        testbot.push_message("!plugin {}".format(command))
+        testbot.push_message(f"!plugin {command}")
         m = testbot.pop_message()
         assert "Please tell me which of the following plugins to" in m
         assert "ChatRoom" in m
@@ -348,7 +358,7 @@ def test_callback_no_command(testbot):
     )
 
     cmd = "!this_is_not_a_real_command_at_all"
-    expected_str = "Command fell through: {}".format(cmd)
+    expected_str = f"Command fell through: {cmd}"
 
     testbot.exec_command("!plugin deactivate CommandNotFoundFilter")
     testbot.bot.plugin_manager._extra_plugin_dir = extra_plugin_dir

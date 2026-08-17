@@ -1,11 +1,8 @@
-sphinx>=1.2
-
-sphinx-autodoc-annotation
+sphinx>=8.2.3
 
 -e .
-slixmpp
-irc
-pyfire
-python-telegram-bot
-slackclient
 hypchat
+irc
+pytest
+python-telegram-bot
+slixmpp
